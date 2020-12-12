@@ -12,11 +12,9 @@
  *  4) Uncomment the line that runs accept_request().
  *  5) Remove -lsocket from the Makefile.
  */
-<<<<<<< HEAD
-=======
 
 #define _GNU_SOURCE
->>>>>>> Initial commit
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/socket.h>
@@ -124,9 +122,6 @@ void accept_request(void *arg)
 
     /* 判断是否是目录"/" */
     if (path[strlen(path) - 1] == '/')
-<<<<<<< HEAD
-        strcat(path, "index.html");
-=======
     {
         strcat(path, "index.html");
         if (access(path, F_OK) == -1)
@@ -135,7 +130,6 @@ void accept_request(void *arg)
             cgi = 1;
         }
     }
->>>>>>> Initial commit
 
     if (stat(path, &st) == -1) {
         while ((numchars > 0) && strcmp("\n", buf))  /* read & discard headers */
@@ -192,20 +186,11 @@ void cat(int client, FILE *resource)
 {
     char buf[1024];
 
-<<<<<<< HEAD
-    fgets(buf, sizeof(buf), resource);
-    while (!feof(resource))
-    {
-        send(client, buf, strlen(buf), 0);
-        fgets(buf, sizeof(buf), resource);
-=======
     int ret = fread(buf, 1, sizeof(buf), resource);
-
     while (ret > 0)
     {
         send(client, buf, ret, 0);
         ret = fread(buf, 1, sizeof(buf), resource);
->>>>>>> Initial commit
     }
 }
 
@@ -411,9 +396,6 @@ int get_line(int sock, char *buf, int size)
 void headers(int client, const char *filename)
 {
     char buf[1024];
-<<<<<<< HEAD
-    (void)filename;  /* could use filename to determine file type */
-=======
     char type[1024];
     //(void)filename;  /* could use filename to determine file type */
 
@@ -425,17 +407,12 @@ void headers(int client, const char *filename)
         strcpy(type, "audio/mpeg");
     else if (strcasestr(filename, ".ogg") != NULL)
         strcpy(type, "audio/ogg");
->>>>>>> Initial commit
 
     strcpy(buf, "HTTP/1.0 200 OK\r\n");
     send(client, buf, strlen(buf), 0);
     strcpy(buf, SERVER_STRING);
     send(client, buf, strlen(buf), 0);
-<<<<<<< HEAD
-    sprintf(buf, "Content-Type: text/html\r\n");
-=======
     sprintf(buf, "Content-Type: %s\r\n", type);
->>>>>>> Initial commit
     send(client, buf, strlen(buf), 0);
     strcpy(buf, "\r\n");
     send(client, buf, strlen(buf), 0);
