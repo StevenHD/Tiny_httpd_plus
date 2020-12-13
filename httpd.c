@@ -26,7 +26,6 @@
 #include <strings.h>
 #include <string.h>
 #include <sys/stat.h>
-//#include <pthread.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -71,13 +70,15 @@ void accept_request(void *arg)
     char *query_string = NULL;
 
     numchars = get_line(client, buf, sizeof(buf));
-    i = 0; j = 0;
+
+    i = 0;
+    j = 0;
     while (!ISspace(buf[i]) && (i < sizeof(method) - 1))
     {
         method[i] = buf[i];
-        i++;
+        i ++;
     }
-    j=i;
+    j = i;
     method[i] = '\0';
 
     if (strcasecmp(method, "GET") && strcasecmp(method, "POST"))
@@ -94,6 +95,7 @@ void accept_request(void *arg)
     /* 从请求行当中截取请求的路径 */
     while (ISspace(buf[j]) && (j < numchars))
         j++;
+
     while (!ISspace(buf[j]) && (i < sizeof(url) - 1) && (j < numchars))
     {
         url[i] = buf[j];
@@ -134,6 +136,7 @@ void accept_request(void *arg)
     if (stat(path, &st) == -1) {
         while ((numchars > 0) && strcmp("\n", buf))  /* read & discard headers */
             numchars = get_line(client, buf, sizeof(buf));
+
         not_found(client);
     }
     else
@@ -246,6 +249,7 @@ void execute_cgi(int client, const char *path,
     int content_length = -1;
 
     buf[0] = 'A'; buf[1] = '\0';
+
     if (strcasecmp(method, "GET") == 0)
         while ((numchars > 0) && strcmp("\n", buf))  /* read & discard headers */
             numchars = get_line(client, buf, sizeof(buf));
@@ -253,13 +257,16 @@ void execute_cgi(int client, const char *path,
     else if (strcasecmp(method, "POST") == 0) /*POST*/
     {
         numchars = get_line(client, buf, sizeof(buf));
+
         while ((numchars > 0) && strcmp("\n", buf))
         {
             buf[15] = '\0';
             if (strcasecmp(buf, "Content-Length:") == 0)
                 content_length = atoi(&(buf[16]));
+
             numchars = get_line(client, buf, sizeof(buf));
         }
+
         if (content_length == -1)
         {
             bad_request(client);
@@ -267,8 +274,7 @@ void execute_cgi(int client, const char *path,
         }
     }
     else/*HEAD or other*/
-    {
-    }
+    {}
 
     /* 创建输入输出管道并fork() */
     if (pipe(cgi_output) < 0)
@@ -287,8 +293,10 @@ void execute_cgi(int client, const char *path,
         cannot_execute(client);
         return;
     }
+
     sprintf(buf, "HTTP/1.0 200 OK\r\n");
     send(client, buf, strlen(buf), 0);
+
     if (pid == 0)  /* child: CGI script */
     {
         char meth_env[255];
@@ -307,11 +315,14 @@ void execute_cgi(int client, const char *path,
         sprintf(meth_env, "REQUEST_METHOD=%s", method);
         putenv(meth_env);
 
-        if (strcasecmp(method, "GET") == 0) {
+        if (strcasecmp(method, "GET") == 0)
+        {
             sprintf(query_env, "QUERY_STRING=%s", query_string);
             putenv(query_env);
         }
-        else {   /* POST */
+        else
+        {
+            /* POST */
             sprintf(length_env, "CONTENT_LENGTH=%d", content_length);
             putenv(length_env);
         }
@@ -320,7 +331,8 @@ void execute_cgi(int client, const char *path,
         exit(0);
     }
     else
-    {    /* parent */
+    {
+        /* parent */
         close(cgi_output[1]);
         close(cgi_input[0]);
 
@@ -365,18 +377,19 @@ int get_line(int sock, char *buf, int size)
     while ((i < size - 1) && (c != '\n'))
     {
         n = recv(sock, &c, 1, 0);
-        /* DEBUG printf("%02X\n", c); */
+
         if (n > 0)
         {
             if (c == '\r')
             {
                 n = recv(sock, &c, 1, MSG_PEEK);
-                /* DEBUG printf("%02X\n", c); */
+
                 if ((n > 0) && (c == '\n'))
                     recv(sock, &c, 1, 0);
                 else
                     c = '\n';
             }
+
             buf[i] = c;
             i++;
         }
@@ -465,8 +478,7 @@ void serve_file(int client, const char *filename)
         numchars = get_line(client, buf, sizeof(buf));
 
     resource = fopen(filename, "r");
-    if (resource == NULL)
-        not_found(client);
+    if (resource == NULL) not_found(client);
     else
     {
         /* 响应头部 */
@@ -475,6 +487,7 @@ void serve_file(int client, const char *filename)
         /* 发送给浏览器它请求的静态页面（文件） */
         cat(client, resource);
     }
+
     fclose(resource);
 }
 
@@ -493,27 +506,35 @@ int startup(u_short *port)
     struct sockaddr_in name;
 
     httpd = socket(PF_INET, SOCK_STREAM, 0);
+
     if (httpd == -1)
         error_die("socket");
+
     memset(&name, 0, sizeof(name));
     name.sin_family = AF_INET;
     name.sin_port = htons(*port);
     name.sin_addr.s_addr = htonl(INADDR_ANY);
+
     if ((setsockopt(httpd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on))) < 0)  
     {  
         error_die("setsockopt failed");
     }
+
     if (bind(httpd, (struct sockaddr *)&name, sizeof(name)) < 0)
         error_die("bind");
+
     if (*port == 0)  /* if dynamically allocating a port */
     {
         socklen_t namelen = sizeof(name);
         if (getsockname(httpd, (struct sockaddr *)&name, &namelen) == -1)
             error_die("getsockname");
+
         *port = ntohs(name.sin_port);
     }
+
     if (listen(httpd, 5) < 0)
         error_die("listen");
+
     return(httpd);
 }
 
@@ -555,14 +576,14 @@ void sig_handler(int sig)
 
 int main(void)
 {
-    //signal(SIGPIPE, sig_handler);
+    /* catch signal */
+    signal(SIGPIPE, sig_handler);
 
     int server_sock = -1;
     u_short port = 4000;
     int client_sock = -1;
     struct sockaddr_in client_name;
     socklen_t  client_name_len = sizeof(client_name);
-    //pthread_t newthread;
 
     server_sock = startup(&port);
     printf("httpd running on port %d\n", port);
@@ -573,6 +594,7 @@ int main(void)
         client_sock = accept(server_sock,
                 (struct sockaddr *)&client_name,
                 &client_name_len);
+
         if (client_sock == -1)
             error_die("accept");
 
