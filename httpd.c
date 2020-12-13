@@ -42,7 +42,7 @@ void bad_request(int);
 void cat(int, FILE *);
 void cannot_execute(int);
 void error_die(const char *);
-void execute_cgi(int, const char *, const char *, const char *);
+void execute_cgi(int, const char *, const char *, const char *, const char *);
 int get_line(int, char *, int);
 void headers(int, const char *);
 void not_found(int);
@@ -142,7 +142,14 @@ void accept_request(void *arg)
     else
     {
         if ((st.st_mode & S_IFMT) == S_IFDIR)
+        {
             strcat(path, "/index.html");
+            if (access(path, F_OK) == -1)
+            {
+                strcpy(path, "htdocs/getdirlist.sh");
+                cgi = 1;
+            }
+        }
 
         if ((st.st_mode & S_IXUSR) ||
                 (st.st_mode & S_IXGRP) ||
@@ -152,7 +159,7 @@ void accept_request(void *arg)
         if (!cgi)
             serve_file(client, path);
         else
-            execute_cgi(client, path, method, query_string);
+            execute_cgi(client, path, method, query_string, url);
     }
 
     close(client);
@@ -233,7 +240,8 @@ void error_die(const char *sc)
  *             path to the CGI script */
 /**********************************************************************/
 void execute_cgi(int client, const char *path,
-        const char *method, const char *query_string)
+        const char *method, const char *query_string,
+        const char *url)
 {
     char buf[1024];
 
@@ -301,6 +309,7 @@ void execute_cgi(int client, const char *path,
     {
         char meth_env[255];
         char query_env[255];
+        char path_env[255];
         char length_env[255];
 
         /* 重定向到标准输入和标准输出 */
@@ -311,9 +320,12 @@ void execute_cgi(int client, const char *path,
         close(cgi_output[0]);
         close(cgi_input[1]);
 
-        /* 在子进程中设置一个环境变量 */
+        /* 在子进程中设置环境变量 */
         sprintf(meth_env, "REQUEST_METHOD=%s", method);
         putenv(meth_env);
+
+        sprintf(path_env, "PATH_INFO=%s", url);
+        putenv(path_env);
 
         if (strcasecmp(method, "GET") == 0)
         {
