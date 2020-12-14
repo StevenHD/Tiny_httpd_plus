@@ -1,8 +1,2 @@
-  These are sample CGI scripts and webpages for tinyhttpd.  They can
-be redistributed under the terms of the GPL.
-
-  The most impressive demonstration I gave of tinyhttpd to my
-professor and my classmates was to load color.cgi with a value of
-"chartreuse." :)  It's actually a very simple script, guys.
-
-jdb
+这里的color.sh是可以替代color.cgi作为新的CGI程序的
+这里的getdirlist.sh是可以在刷新页面后生成文件列表
